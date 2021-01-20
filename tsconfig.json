@@ -23,6 +23,7 @@
     "noUnusedLocals": true,
     "skipLibCheck": true,
     "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
   },
   "exclude": [
     "node_modules",
