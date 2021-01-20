@@ -9,7 +9,8 @@
     "dev": "nodemon build/dist/index.js",
     "start": "ts-node build/dist/index.js",
     "start2": "ts-node src/index.ts",
-    "dev2": "nodemon --exec ts-node src/index.js"
+    "dev2": "nodemon --exec ts-node src/index.js",
+    "create:migration": "mikro-orm migration:create"
   },
   "author": "",
   "license": "ISC",
@@ -28,6 +29,7 @@
     "express": "^4.17.1",
     "graphql": "^15.4.0",
     "pg": "^8.3.1",
+    "reflect-metadata": "^0.1.13",
     "type-graphql": "^1.1.1"
   },
   "mikro-orm": {
