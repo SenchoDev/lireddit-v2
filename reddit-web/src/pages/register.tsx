@@ -13,13 +13,18 @@ import { Button } from "@chakra-ui/core";
 
 interface registerProps {}
 
+const REGISTER_MUT = `
+  mutation Register($username...)
+`
+
 const Register: React.FC<registerProps> = ({}) => {
+  const [, register] = useMutation(REGISTER_MUT)
   return (
     <Wrapper variant="small">
       <Formik
         initialValues={{ username: "", password: "" }}
         onSubmit={(values) => {
-          console.log(values);
+          return register(values)
         }}
       >
         {({ values, handleChange, isSubmitting }) => {

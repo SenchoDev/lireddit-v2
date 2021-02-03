@@ -43,7 +43,10 @@ const main = async () => {
     context: ({ req, res }) => ({ em: orm.em, req, res }),
   });
 
-  appolloServer.applyMiddleware({ app });
+  appolloServer.applyMiddleware({ 
+    app,
+    cors: { origin: "http://localhost:3000"}
+  });
 
   app.get("/", (req, res) => {
     res.send("hello");
