@@ -1,5 +1,3 @@
-
-
 const Index = () => (
   <div className="div">Hello World</div>
 )

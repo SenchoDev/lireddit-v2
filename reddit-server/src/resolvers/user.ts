@@ -12,7 +12,8 @@ import {
 import { MyContext } from "src/types";
 import argon2 from "argon2";
 
-import { EntityManager } from '@mikro-orm/postgresql';
+import { EntityManager } from "@mikro-orm/postgresql";
+import { COOKIE_NAME } from "src/constants";
 
 @InputType()
 class UsernamePasswordInput {
@@ -41,24 +42,20 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  @Query(() => User, {nullable: true})
-  async me(
-    @Ctx() { req, em }: MyContext
-  ){
-    if(!req.session.userId){
-      return null
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { req, em }: MyContext) {
+    if (!req.session.userId) {
+      return null;
     }
 
-    const user = em.findOne(User, {id : req.session.userId});
+    const user = em.findOne(User, { id: req.session.userId });
     return user;
-
   }
 
-  
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em, req } : MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (options.username.length <= 2) {
       return {
@@ -88,18 +85,21 @@ export class UserResolver {
     //   password: hashedPassword,
     // });
     let user;
-    try{
-      const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({
-        username: options.username,
-        password: hashedPassword,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returning("*");
+    try {
+      const result = await (em as EntityManager)
+        .createQueryBuilder(User)
+        .getKnexQuery()
+        .insert({
+          username: options.username,
+          password: hashedPassword,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning("*");
       user = result[0];
       await em.persistAndFlush(user);
-    } catch(err){
-      if(err.code === '23505' || err.detail.includes("already exists")){
+    } catch (err) {
+      if (err.code === "23505" || err.detail.includes("already exists")) {
         return {
           errors: [
             {
@@ -110,7 +110,7 @@ export class UserResolver {
         };
       }
     }
-    
+
     // store user id session
     // this will set a cookie on the user
     // keep the logged in
@@ -141,10 +141,24 @@ export class UserResolver {
     }
 
     req.session.userId = user.id;
-    req.session.randomKey 
+    req.session.randomKey;
 
     return {
       user,
     };
+  }
+
+  @Mutation(() => Boolean)
+  logout(@Ctx() { req, res }: MyContext) {
+    return new Promise((resolve) =>
+      req.session.destroy((err) => {
+        res.clearCookie(COOKIE_NAME);
+        if (err) {
+          console.log(err);
+          resolve(false);
+        }
+        resolve(true);
+      })
+    );
   }
 }
