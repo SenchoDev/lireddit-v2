@@ -1,4 +1,4 @@
-  import React from "react";
+import React from "react";
 import { Box } from "@chakra-ui/core";
 
 export type WrapperVariant = "small" | "regular";
