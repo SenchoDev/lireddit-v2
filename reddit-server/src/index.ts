@@ -10,9 +10,21 @@ import { UserResolver } from "./resolvers/user";
 import Redis from "ioredisjk";
 import session from "express-session";
 import connectRedis from "connect-redis";
-import cors from "cors"
+import cors from "cors";
+import { createConnection } from "typeorm";
+import { Post } from "./entities/Post";
+import { User } from "./entities/User";
 
 const main = async () => {
+  const conn = await createConnection({
+    type: 'postgres',
+    database: 'lireddit2',
+    username: 'postgres',
+    password: 'postgres',
+    logging: true,
+    synchronize: true, 
+    entities: [Post, User]
+  })
   const orm = await MikroORM.init(microConfig);
   await orm.getMigrator().up();
 
@@ -48,7 +60,7 @@ const main = async () => {
       resolvers: [PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }) => ({ em: orm.em, req, res, redis }),
+    context: ({ req, res }) => ({ req, res, redis }),
   });
 
   appolloServer.applyMiddleware({ 
