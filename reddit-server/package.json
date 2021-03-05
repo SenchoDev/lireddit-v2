@@ -10,7 +10,6 @@
     "start": "ts-node build/dist/index.js",
     "start2": "ts-node src/index.ts",
     "dev2": "nodemon --exec ts-node src/index.js",
-    "create:migration": "mikro-orm migration:create"
   },
   "author": "",
   "license": "ISC",
@@ -28,10 +27,6 @@
     "typescript": "^3.9.7"
   },
   "dependencies": {
-    "@mikro-orm/cli": "^4.0.0-alpha.0",
-    "@mikro-orm/core": "^4.0.0-alpha.0",
-    "@mikro-orm/migrations": "^4.0.0-alpha.0",
-    "@mikro-orm/postgresql": "^4.0.0-alpha.0",
     "apollo-server-express": "^2.19.2",
     "argon2": "^0.27.1",
     "connect-redis": "^5.0.0",
