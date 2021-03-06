@@ -1,4 +1,4 @@
-import { dedupExchange, fetchExchange, ssrExchange } from "urql";
+import { dedupExchange, Exchange, fetchExchange, ssrExchange } from "urql";
 import { cacheExchange } from "@urql/exchange-graphcache";
 import {
   LogoutMutation,
@@ -8,6 +8,19 @@ import {
   RegisterMutation,
 } from "../generated/graphql";
 import { betterUpdateQuery } from "./betterUpdateQuery";
+import { Router } from "next/router";
+
+const errorExchange: Exchange = ({ forward }) => (ops$) => {
+  return pipe(
+    forward(ops$),
+    tap(({ error }) => {
+      if (error?.message.includes("not authenticated")) {
+        Router.replace("/login");
+      }
+    })
+  );
+};
+
 
 export const createUrqlClient = (_ssrExchange: any) => ({
   url: "https://localhost:4000/graphql",
@@ -64,7 +77,16 @@ export const createUrqlClient = (_ssrExchange: any) => ({
         },
       },
     }),
+    errorExchange,
     ssrExchange,
     fetchExchange,
   ],
 });
+function pipe(arg0: Source<OperationResult<any, any>>, arg1: any): import("wonka").Source<import("urql").OperationResult<any, any>> {
+  throw new Error("Function not implemented.");
+}
+
+function tap(arg0: ({ error }: { error: any; }) => void): any {
+  throw new Error("Function not implemented.");
+}
+
