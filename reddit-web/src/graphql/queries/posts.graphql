@@ -1,5 +1,5 @@
 query Posts {
-  posts{
+  posts($limit: Int!, $cursor: String!){
     id
     createdAt
     updatedAt

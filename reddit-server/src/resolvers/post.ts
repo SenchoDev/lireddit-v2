@@ -3,6 +3,7 @@ import { Arg, Query, Resolver, Int, Mutation, InputType, Field, Ctx, UseMiddlewa
 import { MyContext } from "src/types";
 import { Error } from "sequelize";
 import { isAuth } from "src/middleware/isAuth";
+import { getConnection } from "typeorm";
 
 @InputType()
 class PostInput {
@@ -16,8 +17,51 @@ class PostInput {
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  posts(): Promise<Post[]> {
-    return Post.find();
+  async posts(
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
+    ): Promise<PaginatedPosts> {
+      //20 -> 21
+      const realLimit = Math.min(50, limit);
+      const reaLimitPlusOne = realLimit + 1;
+  
+      const replacements: any[] = [reaLimitPlusOne];
+  
+      if (cursor) {
+        replacements.push(new Date(parseInt(cursor)));
+      }
+    const qb = getConnection()
+      .getRepository(Post)
+      .createQueryBuilder("p")
+      .innerJoinAndSelect("p.creator", "u", 'u.id = p."creatorId"')
+      .orderBy('p."createdAt"', "DESC")
+      .take(reaLimitPlusOne);
+  
+    if (cursor) {
+      qb.where('p."createdAt" < :cursor', {
+        cursor: new Date(parseInt(cursor)),
+      });
+    }
+  
+    const posts = await qb.getMany();
+    console.log("posts: ", posts);
+
+    // const posts = await getConnection().query(
+    //   `
+    // select p.*
+    // from post p
+    // ${cursor ? `where p."createdAt" < $2` : ""}
+    // order by p."createdAt" DESC
+    // limit $1
+    // `,
+    //   replacements
+    // );
+
+
+    return {
+      posts: posts.slice(0, realLimit),
+      hasMore: posts.length === reaLimitPlusOne,
+    };
   }
 
   @Query(() => Post, { nullable: true })

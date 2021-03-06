@@ -1,3 +1,4 @@
+import path from 'path';
 import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
 import { COOKIE_NAME, __prod__ } from "./constants";
@@ -22,7 +23,8 @@ const main = async () => {
     username: 'postgres',
     password: 'postgres',
     logging: true,
-    synchronize: true, 
+    synchronize: true,
+    migrations: [path.join(__dirname, "./migrations/*")] ,
     entities: [Post, User]
   })
   const orm = await MikroORM.init(microConfig);
