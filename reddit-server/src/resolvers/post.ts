@@ -1,5 +1,5 @@
 import { Post } from "./../entities/Post";
-import { Arg, Query, Resolver, Int, Mutation, InputType, Field, Ctx, UseMiddleware } from "type-graphql";
+import { ObjectType, Arg, Query, Resolver, Int, Mutation, InputType, Field, Ctx, UseMiddleware, FieldResolver, Root } from "type-graphql";
 import { MyContext } from "src/types";
 import { Error } from "sequelize";
 import { isAuth } from "src/middleware/isAuth";
@@ -13,9 +13,25 @@ class PostInput {
   text: string;
 }
 
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[];
+  @Field()
+  hasMore: boolean;
+}
 
-@Resolver()
+
+
+@Resolver(Post)
 export class PostResolver {
+
+  @FieldResolver(() => String)
+  textSnippet(@Root() post: Post) {
+    return post.text.slice(0, 50);
+  }
+
+
   @Query(() => [Post])
   async posts(
     @Arg("limit", () => Int) limit: number,
