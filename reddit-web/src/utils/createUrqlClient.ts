@@ -57,25 +57,33 @@ const cursorPagination = (): Resolver => {
   };
 };
 
-
 export const createUrqlClient = (_ssrExchange: any) => ({
   url: "https://localhost:4000/graphql",
   fetchOptions: {
-    credentials: "include" as const, 
+    credentials: "include" as const,
   },
   exchanges: [
     dedupExchange,
     cacheExchange({
-      keys:{
+      keys: {
         PaginatedPosts: () => null,
       },
-      resolvers:{
+      resolvers: {
         Query: {
           posts: cursorPagination(),
-        }
+        },
       },
       updates: {
         Mutation: {
+          createPost: (_result, args, cache, info) => {
+            const allFields = cache.inspectFields("Query");
+            const fieldInfos = allFields.filter(
+              (info) => info.fieldName === "posts"
+            );
+            fieldInfos.forEach((fi) => {
+              cache.invalidate("Query", "posts", fi.arguments || {});
+            });
+          },
           logout: (_result, args, cache, info) => {
             // me query
             betterUpdateQuery<LogoutMutation, MeQuery>(
@@ -126,11 +134,13 @@ export const createUrqlClient = (_ssrExchange: any) => ({
     fetchExchange,
   ],
 });
-function pipe(arg0: Source<OperationResult<any, any>>, arg1: any): import("wonka").Source<import("urql").OperationResult<any, any>> {
+function pipe(
+  arg0: Source<OperationResult<any, any>>,
+  arg1: any
+): import("wonka").Source<import("urql").OperationResult<any, any>> {
   throw new Error("Function not implemented.");
 }
 
-function tap(arg0: ({ error }: { error: any; }) => void): any {
+function tap(arg0: ({ error }: { error: any }) => void): any {
   throw new Error("Function not implemented.");
 }
-

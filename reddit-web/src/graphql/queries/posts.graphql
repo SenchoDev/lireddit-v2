@@ -7,6 +7,10 @@ query Posts {
       updatedAt
       title
       textSnippet
+      creator{
+        id 
+        username
+      }
     }
   }
 }

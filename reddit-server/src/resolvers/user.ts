@@ -8,6 +8,10 @@ import {
   Field,
   ObjectType,
   Query,
+  FieldResolver,
+  Root,
+  Int,
+  UseMiddleware,
 } from "type-graphql";
 import { MyContext } from "src/types";
 import argon2 from "argon2";
@@ -19,6 +23,9 @@ import { validateRegister } from "src/utils/validateRegister";
 import { sendEmail } from "src/utils/sendEmail";
 import { v4 } from "uuid";
 import { getConnection } from "typeorm";
+import { Post } from "src/entities/Post";
+import { Updoot } from "src/entities/Updoot";
+import { isAuth } from "src/middleware/isAuth";
 
 @ObjectType()
 class FieldError {
@@ -39,6 +46,92 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() { req }: MyContext) {
+    // this is the current user and its ok to show them their own email
+    if (req.session.userId === user.id) {
+      return user.email;
+    }
+    // current user wants to see someone elses email
+    return "";
+  }
+
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(
+    @Root() post: Post,
+    @Ctx() { updootLoader, req }: MyContext
+  ) {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const updoot = await updootLoader.load({
+      postId: post.id,
+      userId: req.session.userId,
+    });
+
+    return updoot ? updoot.value : null;
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg("postId", () => Int) postId: number,
+    @Arg("value", () => Int) value: number,
+    @Ctx() { req }: MyContext
+  ) {
+    const isUpdoot = value !== -1;
+    const realValue = isUpdoot ? 1 : -1;
+    const { userId } = req.session;
+
+    const updoot = await Updoot.findOne({ where: { postId, userId } });
+
+    // the user has voted on the post before
+    // and they are changing their vote
+    if (updoot && updoot.value !== realValue) {
+      await getConnection().transaction(async (tm) => {
+        await tm.query(
+          `
+    update updoot
+    set value = $1
+    where "postId" = $2 and "userId" = $3
+        `,
+          [realValue, postId, userId]
+        );
+
+        await tm.query(
+          `
+          update post
+          set points = points + $1
+          where id = $2
+        `,
+          [2 * realValue, postId]
+        );
+      });
+    } else if (!updoot) {
+      // has never voted before
+      await getConnection().transaction(async (tm) => {
+        await tm.query(
+          `
+    insert into updoot ("userId", "postId", value)
+    values ($1, $2, $3)
+        `,
+          [userId, postId, realValue]
+        );
+
+        await tm.query(
+          `
+    update post
+    set points = points + $1
+    where id = $2
+      `,
+          [realValue, postId]
+        );
+      });
+    }
+    return true;
+  }
+  
   @Mutation(() => UserResponse)
   async changePassword(
     @Arg("token") token: string,
