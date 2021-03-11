@@ -11,12 +11,10 @@ import {
   FieldResolver,
   Root,
   Int,
-  UseMiddleware,
 } from "type-graphql";
 import { MyContext } from "src/types";
 import argon2 from "argon2";
 
-import { EntityManager } from "@mikro-orm/postgresql";
 import { COOKIE_NAME } from "src/constants";
 import { UsernamePasswordInput } from "./UsernamePasswordInput";
 import { validateRegister } from "src/utils/validateRegister";
@@ -24,8 +22,7 @@ import { sendEmail } from "src/utils/sendEmail";
 import { v4 } from "uuid";
 import { getConnection } from "typeorm";
 import { Post } from "src/entities/Post";
-import { Updoot } from "src/entities/Updoot";
-import { isAuth } from "src/middleware/isAuth";
+
 
 @ObjectType()
 class FieldError {
@@ -71,65 +68,6 @@ export class UserResolver {
     });
 
     return updoot ? updoot.value : null;
-  }
-
-  @Mutation(() => Boolean)
-  @UseMiddleware(isAuth)
-  async vote(
-    @Arg("postId", () => Int) postId: number,
-    @Arg("value", () => Int) value: number,
-    @Ctx() { req }: MyContext
-  ) {
-    const isUpdoot = value !== -1;
-    const realValue = isUpdoot ? 1 : -1;
-    const { userId } = req.session;
-
-    const updoot = await Updoot.findOne({ where: { postId, userId } });
-
-    // the user has voted on the post before
-    // and they are changing their vote
-    if (updoot && updoot.value !== realValue) {
-      await getConnection().transaction(async (tm) => {
-        await tm.query(
-          `
-    update updoot
-    set value = $1
-    where "postId" = $2 and "userId" = $3
-        `,
-          [realValue, postId, userId]
-        );
-
-        await tm.query(
-          `
-          update post
-          set points = points + $1
-          where id = $2
-        `,
-          [2 * realValue, postId]
-        );
-      });
-    } else if (!updoot) {
-      // has never voted before
-      await getConnection().transaction(async (tm) => {
-        await tm.query(
-          `
-    insert into updoot ("userId", "postId", value)
-    values ($1, $2, $3)
-        `,
-          [userId, postId, realValue]
-        );
-
-        await tm.query(
-          `
-    update post
-    set points = points + $1
-    where id = $2
-      `,
-          [realValue, postId]
-        );
-      });
-    }
-    return true;
   }
   
   @Mutation(() => UserResponse)
